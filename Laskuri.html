@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <title>Sähköauton latauslaskuri</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; }
+        button { background-color: #4CAF50; color: white; border: none; }
+        .results { margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h2>⚡ Sähköauton latauslaskuri</h2>
+    <input type="number" id="akku" placeholder="Akun kapasiteetti (kWh)" step="any">
+    <input type="number" id="range" placeholder="Toimintamatka (km)" step="any">
+    <input type="number" id="ajettu" placeholder="Ajettu matka (km)" step="any">
+    <input type="number" id="tavoite" placeholder="Lataustavoite (%)" step="any">
+    <input type="number" id="teho" placeholder="Latausteho (kW)" step="any">
+    <input type="number" id="hintaMin" placeholder="Hinta senttiä/min" step="any">
+    <input type="number" id="hintaKwh" placeholder="Hinta senttiä/kWh" step="any">
+    <button onclick="laske()">Laske</button>
+
+    <div class="results" id="tulokset"></div>
+
+    <script>
+        function laske() {
+            const akku = parseFloat(document.getElementById('akku').value);
+            const range = parseFloat(document.getElementById('range').value);
+            const ajettu = parseFloat(document.getElementById('ajettu').value);
+            const tavoite = parseFloat(document.getElementById('tavoite').value);
+            const teho = parseFloat(document.getElementById('teho').value);
+            const hintaMin = parseFloat(document.getElementById('hintaMin').value);
+            const hintaKwh = parseFloat(document.getElementById('hintaKwh').value);
+
+            if (isNaN(akku) || isNaN(range) || isNaN(ajettu) || isNaN(tavoite) || isNaN(teho)) {
+                document.getElementById('tulokset').innerText = "⚠️ Täytä kaikki kentät oikein.";
+                return;
+            }
+
+            const kulutusPerKm = akku / range;
+            const kulutettu = ajettu * kulutusPerKm;
+            const jaljella = akku - kulutettu;
+            const jaljellaProsentti = (jaljella / akku) * 100;
+            const ladattavaProsentti = tavoite - jaljellaProsentti;
+            const ladattavaKwh = (ladattavaProsentti / 100) * akku;
+            const latausaikaMin = (ladattavaKwh / teho) * 60;
+
+            const hintaMinEuro = isNaN(hintaMin) || hintaMin === 0 ? null : hintaMin / 100;
+            const hintaKwhEuro = isNaN(hintaKwh) || hintaKwh === 0 ? null : hintaKwh / 100;
+
+            const hintaMinYht = hintaMinEuro !== null ? latausaikaMin * hintaMinEuro : null;
+            const hintaKwhYht = hintaKwhEuro !== null ? ladattavaKwh * hintaKwhEuro : null;
+
+            let edullisin = "N/A";
+            if (hintaMinYht !== null && hintaKwhYht !== null) {
+                edullisin = hintaKwhYht < hintaMinYht ? "senttiä/kWh-hinnoittelu" : "senttiä/min-hinnoittelu";
+            } else if (hintaMinYht !== null) {
+                edullisin = "Vain senttiä/min-hinta annettu";
+            } else if (hintaKwhYht !== null) {
+                edullisin = "Vain senttiä/kWh-hinta annettu";
+            }
+
+            document.getElementById('tulokset').innerHTML = `
+                <strong>Tulokset:</strong><br>
+                Kulutus: ${kulutusPerKm.toFixed(3)} kWh/km<br>
+                Kulutettu energia: ${kulutettu.toFixed(2)} kWh<br>
+                Varaustaso ajon jälkeen: ${jaljellaProsentti.toFixed(1)} %<br>
+                Ladattava energia: ${ladattavaKwh.toFixed(2)} kWh<br>
+                Latausaika: ${latausaikaMin.toFixed(1)} min<br>
+                Hinta (senttiä/min): ${hintaMinYht !== null ? hintaMinYht.toFixed(2) + ' €' : 'ei annettu'}<br>
+                Hinta (senttiä/kWh): ${hintaKwhYht !== null ? hintaKwhYht.toFixed(2) + ' €' : 'ei annettu'}<br>
+                <strong>Edullisin:</strong> ${edullisin}
+            `;
+        }
+    </script>
+</body>
+</html>
